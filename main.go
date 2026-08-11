@@ -5,12 +5,14 @@ import (
 	"context"
 	"crypto/sha256"
 	"encoding/hex"
+	"fmt"
 	"io"
 	"net/http"
 	"os"
 	"path/filepath"
 	"sort"
 	"strings"
+	"time"
 
 	"github.com/sagernet/sing-box/common/geosite"
 	"github.com/sagernet/sing-box/common/srs"
@@ -25,7 +27,10 @@ import (
 	"google.golang.org/protobuf/proto"
 )
 
-var githubClient *github.Client
+var (
+	githubClient *github.Client
+	httpClient   = &http.Client{Timeout: 10 * time.Minute}
+)
 
 func init() {
 	accessToken, loaded := os.LookupEnv("ACCESS_TOKEN")
@@ -40,8 +45,20 @@ func init() {
 }
 
 func fetch(from string) (*github.RepositoryRelease, error) {
+	fixedRelease := os.Getenv("FIXED_RELEASE")
 	names := strings.SplitN(from, "/", 2)
-	latestRelease, _, err := githubClient.Repositories.GetLatestRelease(context.Background(), names[0], names[1])
+	if len(names) != 2 || names[0] == "" || names[1] == "" {
+		return nil, E.New("invalid GitHub repository: ", from)
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
+	defer cancel()
+	var latestRelease *github.RepositoryRelease
+	var err error
+	if fixedRelease != "" {
+		latestRelease, _, err = githubClient.Repositories.GetReleaseByTag(ctx, names[0], names[1], fixedRelease)
+	} else {
+		latestRelease, _, err = githubClient.Repositories.GetLatestRelease(ctx, names[0], names[1])
+	}
 	if err != nil {
 		return nil, err
 	}
@@ -50,12 +67,29 @@ func fetch(from string) (*github.RepositoryRelease, error) {
 
 func get(downloadURL *string) ([]byte, error) {
 	log.Info("download ", *downloadURL)
-	response, err := http.Get(*downloadURL)
-	if err != nil {
-		return nil, err
+	var lastErr error
+	for attempt := 1; attempt <= 3; attempt++ {
+		response, err := httpClient.Get(*downloadURL)
+		if err == nil && response.StatusCode == http.StatusOK {
+			data, readErr := io.ReadAll(response.Body)
+			response.Body.Close()
+			if readErr == nil {
+				return data, nil
+			}
+			lastErr = readErr
+		} else {
+			if err != nil {
+				lastErr = err
+			} else {
+				lastErr = E.New("download failed with status ", response.Status)
+				response.Body.Close()
+			}
+		}
+		if attempt < 3 {
+			time.Sleep(time.Duration(attempt) * time.Second)
+		}
 	}
-	defer response.Body.Close()
-	return io.ReadAll(response.Body)
+	return nil, lastErr
 }
 
 func download(release *github.RepositoryRelease) ([]byte, error) {
@@ -80,7 +114,8 @@ func download(release *github.RepositoryRelease) ([]byte, error) {
 		return nil, err
 	}
 	checksum := sha256.Sum256(data)
-	if hex.EncodeToString(checksum[:]) != string(remoteChecksum[:64]) {
+	remote := strings.Fields(string(remoteChecksum))
+	if len(remote) == 0 || !strings.EqualFold(hex.EncodeToString(checksum[:]), remote[0]) {
 		return nil, E.New("checksum mismatch")
 	}
 	return data, nil
@@ -245,40 +280,40 @@ func mergeTags(data map[string][]geosite.Item) {
 	for code := range data {
 		codeList = append(codeList, code)
 	}
-	var cnCodeList []string
+	var idCodeList []string
 	for _, code := range codeList {
 		codeParts := strings.Split(code, "@")
 		if len(codeParts) != 2 {
 			continue
 		}
-		if codeParts[1] != "cn" {
+		if codeParts[1] != "id" {
 			continue
 		}
 		if !strings.HasPrefix(codeParts[0], "category-") {
 			continue
 		}
-		if strings.HasSuffix(codeParts[0], "-cn") || strings.HasSuffix(codeParts[0], "-!cn") {
+		if strings.HasSuffix(codeParts[0], "-id") || strings.HasSuffix(codeParts[0], "-!id") {
 			continue
 		}
-		cnCodeList = append(cnCodeList, code)
+		idCodeList = append(idCodeList, code)
 	}
 	for _, code := range codeList {
 		if !strings.HasPrefix(code, "category-") {
 			continue
 		}
-		if !strings.HasSuffix(code, "-cn") {
+		if !strings.HasSuffix(code, "-id") {
 			continue
 		}
 		if strings.Contains(code, "@") {
 			continue
 		}
-		cnCodeList = append(cnCodeList, code)
+		idCodeList = append(idCodeList, code)
 	}
 	newMap := make(map[geosite.Item]bool)
-	for _, item := range data["geolocation-cn"] {
+	for _, item := range data["geolocation-id"] {
 		newMap[item] = true
 	}
-	for _, code := range cnCodeList {
+	for _, code := range idCodeList {
 		for _, item := range data[code] {
 			newMap[item] = true
 		}
@@ -287,15 +322,15 @@ func mergeTags(data map[string][]geosite.Item) {
 	for item := range newMap {
 		newList = append(newList, item)
 	}
-	data["geolocation-cn"] = newList
-	data["cn"] = append(newList, geosite.Item{
+	data["geolocation-id"] = newList
+	data["id"] = append(newList, geosite.Item{
 		Type:  geosite.RuleTypeDomainSuffix,
-		Value: "cn",
+		Value: "id",
 	})
-	println("merged cn categories: " + strings.Join(cnCodeList, ","))
+	println("merged id categories: " + strings.Join(idCodeList, ","))
 }
 
-func generate(release *github.RepositoryRelease, output string, cnOutput string, ruleSetOutput string, ruleSetUnstableOutput string) error {
+func generate(release *github.RepositoryRelease, output string, idOutput string, ruleSetOutput string, ruleSetUnstableOutput string) error {
 	vData, err := download(release)
 	if err != nil {
 		return err
@@ -322,20 +357,20 @@ func generate(release *github.RepositoryRelease, output string, cnOutput string,
 	if err != nil {
 		return err
 	}
-	cnCodes := []string{
-		"geolocation-cn",
+	idCodes := []string{
+		"geolocation-id",
 	}
-	cnDomainMap := make(map[string][]geosite.Item)
-	for _, cnCode := range cnCodes {
-		cnDomainMap[cnCode] = domainMap[cnCode]
+	idDomainMap := make(map[string][]geosite.Item)
+	for _, idCode := range idCodes {
+		idDomainMap[idCode] = domainMap[idCode]
 	}
-	cnOutputFile, err := os.Create(cnOutput)
+	idOutputFile, err := os.Create(idOutput)
 	if err != nil {
 		return err
 	}
-	defer cnOutputFile.Close()
-	writer.Reset(cnOutputFile)
-	err = geosite.Write(writer, cnDomainMap)
+	defer idOutputFile.Close()
+	writer.Reset(idOutputFile)
+	err = geosite.Write(writer, idDomainMap)
 	if err != nil {
 		return err
 	}
@@ -345,9 +380,10 @@ func generate(release *github.RepositoryRelease, output string, cnOutput string,
 	}
 	os.RemoveAll(ruleSetOutput)
 	os.RemoveAll(ruleSetUnstableOutput)
-	err = os.MkdirAll(ruleSetOutput, 0o755)
-	err = os.MkdirAll(ruleSetUnstableOutput, 0o755)
-	if err != nil {
+	if err = os.MkdirAll(ruleSetOutput, 0o755); err != nil {
+		return err
+	}
+	if err = os.MkdirAll(ruleSetUnstableOutput, 0o755); err != nil {
 		return err
 	}
 	for code, domains := range domainMap {
@@ -394,10 +430,21 @@ func generate(release *github.RepositoryRelease, output string, cnOutput string,
 }
 
 func setActionOutput(name string, content string) {
-	os.Stdout.WriteString("::set-output name=" + name + "::" + content + "\n")
+	path := os.Getenv("GITHUB_OUTPUT")
+	if path == "" {
+		log.Warn("GITHUB_OUTPUT not set, skipping output: ", name)
+		return
+	}
+	file, err := os.OpenFile(path, os.O_APPEND|os.O_WRONLY|os.O_CREATE, 0o644)
+	if err != nil {
+		log.Warn("failed to open GITHUB_OUTPUT: ", err)
+		return
+	}
+	defer file.Close()
+	_, _ = fmt.Fprintf(file, "%s=%s\n", name, content)
 }
 
-func release(source string, destination string, output string, cnOutput string, ruleSetOutput string, ruleSetOutputUnstable string) error {
+func release(source string, destination string, output string, idOutput string, ruleSetOutput string, ruleSetOutputUnstable string) error {
 	sourceRelease, err := fetch(source)
 	if err != nil {
 		return err
@@ -412,7 +459,7 @@ func release(source string, destination string, output string, cnOutput string, 
 			return nil
 		}
 	}
-	err = generate(sourceRelease, output, cnOutput, ruleSetOutput, ruleSetOutputUnstable)
+	err = generate(sourceRelease, output, idOutput, ruleSetOutput, ruleSetOutputUnstable)
 	if err != nil {
 		return err
 	}
@@ -425,7 +472,7 @@ func main() {
 		"v2fly/domain-list-community",
 		"sagernet/sing-geosite",
 		"geosite.db",
-		"geosite-cn.db",
+		"geosite-id.db",
 		"rule-set",
 		"rule-set-unstable",
 	)

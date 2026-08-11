@@ -1,5 +1,8 @@
 /.idea/
 /vendor/
-**.db
+/*.db
+/*.sha256sum
+/bits-geosite
 /rule-set/
 /rule-set-unstable/
+/release/

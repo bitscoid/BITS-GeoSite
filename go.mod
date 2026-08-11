@@ -1,4 +1,4 @@
-module github.com/sagernet/sing-geosite
+module github.com/bitscoid/BITS-GeoSite
 
 go 1.21
 
