@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"regexp"
 	"sort"
 	"strings"
 	"time"
@@ -26,6 +27,35 @@ import (
 	"github.com/v2fly/v2ray-core/v5/app/router/routercommon"
 	"google.golang.org/protobuf/proto"
 )
+
+type additionalList struct {
+	name string
+	url  string
+}
+
+var additionalLists = []additionalList{
+	{"oisd-full", "https://big.oisd.nl/dnsmasq"},
+	{"oisd-small", "https://small.oisd.nl/dnsmasq"},
+	{"oisd-nsfw", "https://nsfw.oisd.nl/dnsmasq"},
+	{"d3ward", "https://raw.githubusercontent.com/Turtlecute33/adblocktest/master/src/d3host.txt"},
+	{"antiscam", "https://raw.githubusercontent.com/malikshi/antiscam/refs/heads/main/antiscam.txt"},
+	{"rule-ads", "https://raw.githubusercontent.com/Turtlecute33/adblocktest/master/src/d3host.txt"},
+	{"rule-ads", "https://raw.githubusercontent.com/malikshi/v2ray-rules-dat/rule/rule_ads.txt"},
+	{"rule-doh", "https://raw.githubusercontent.com/malikshi/dns_ip/main/domains-doh.txt"},
+	{"rule-gaming", "https://raw.githubusercontent.com/malikshi/v2ray-rules-dat/rule/rule_gaming.txt"},
+	{"rule-indo", "https://raw.githubusercontent.com/malikshi/v2ray-rules-dat/rule/rule_indo.txt"},
+	{"rule-playstore", "https://raw.githubusercontent.com/malikshi/v2ray-rules-dat/rule/rule_playstore.txt"},
+	{"rule-sosmed", "https://raw.githubusercontent.com/malikshi/v2ray-rules-dat/rule/rule_sosmed.txt"},
+	{"rule-streaming", "https://raw.githubusercontent.com/malikshi/v2ray-rules-dat/rule/rule_streaming.txt"},
+	{"rule-umum", "https://raw.githubusercontent.com/malikshi/v2ray-rules-dat/rule/rule_umum.txt"},
+	{"rule-ipcheck", "https://raw.githubusercontent.com/malikshi/v2ray-rules-dat/rule/rule_ipcheck.txt"},
+	{"rule-speedtest", "https://raw.githubusercontent.com/malikshi/v2ray-rules-dat/rule/rule_speedtest.txt"},
+	{"videoconference", "https://raw.githubusercontent.com/malikshi/v2ray-rules-dat/rule/rule-videoconference.txt"},
+	{"rule-malicious", "https://raw.githubusercontent.com/elliotwutingfeng/Inversion-DNSBL-Blocklists/main/Google_hostnames_light.txt"},
+	{"urltest", "https://raw.githubusercontent.com/malikshi/v2ray-rules-dat/rule/urltest.txt"},
+}
+
+var domainPattern = regexp.MustCompile(`(?i)^(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,63}$`)
 
 var (
 	githubClient *github.Client
@@ -90,6 +120,69 @@ func get(downloadURL *string) ([]byte, error) {
 		}
 	}
 	return nil, lastErr
+}
+
+func parseAdditionalDomains(data []byte) []string {
+	seen := make(map[string]struct{})
+	var domains []string
+	for _, raw := range strings.Split(string(data), "\n") {
+		line := strings.TrimSpace(strings.SplitN(raw, "#", 2)[0])
+		if line == "" || strings.HasPrefix(line, "!") || strings.HasPrefix(line, ";") {
+			continue
+		}
+		if strings.HasPrefix(line, "server=/") {
+			line = strings.TrimPrefix(line, "server=/")
+			if end := strings.IndexByte(line, '/'); end >= 0 {
+				line = line[:end]
+			}
+		} else if strings.HasPrefix(line, "||") {
+			line = strings.TrimPrefix(line, "||")
+			if end := strings.IndexAny(line, "^/\t "); end >= 0 {
+				line = line[:end]
+			}
+		} else {
+			fields := strings.Fields(line)
+			if len(fields) > 1 && (fields[0] == "0.0.0.0" || fields[0] == "127.0.0.1") {
+				line = fields[1]
+			} else if len(fields) > 1 && strings.Contains(fields[0], ":") {
+				line = fields[1]
+			}
+		}
+		line = strings.TrimPrefix(line, "full:")
+		line = strings.TrimPrefix(line, "domain:")
+		line = strings.TrimSpace(strings.TrimSuffix(line, "."))
+		if !domainPattern.MatchString(line) {
+			continue
+		}
+		line = strings.ToLower(line)
+		if _, ok := seen[line]; ok {
+			continue
+		}
+		seen[line] = struct{}{}
+		domains = append(domains, line)
+	}
+	sort.Strings(domains)
+	return domains
+}
+
+func fetchAdditionalLists(domainMap map[string][]geosite.Item) error {
+	for _, list := range additionalLists {
+		data, err := get(&list.url)
+		if err != nil {
+			return E.Cause(err, "download additional list ", list.name)
+		}
+		for _, domain := range parseAdditionalDomains(data) {
+			domainMap[list.name] = append(domainMap[list.name], geosite.Item{
+				Type:  geosite.RuleTypeDomainSuffix,
+				Value: "." + domain,
+			})
+		}
+		if len(domainMap[list.name]) == 0 {
+			return E.New("additional list is empty: ", list.name)
+		}
+		domainMap[list.name] = common.Uniq(domainMap[list.name])
+	}
+	return nil
 }
 
 func download(release *github.RepositoryRelease) ([]byte, error) {
@@ -339,6 +432,9 @@ func generate(release *github.RepositoryRelease, output string, idOutput string,
 	if err != nil {
 		return err
 	}
+	if err = fetchAdditionalLists(domainMap); err != nil {
+		return err
+	}
 	filterTags(domainMap)
 	mergeTags(domainMap)
 	outputPath, _ := filepath.Abs(output)
@@ -358,11 +454,15 @@ func generate(release *github.RepositoryRelease, output string, idOutput string,
 		return err
 	}
 	idCodes := []string{
-		"geolocation-id",
+		"id",
+		"rule-indo",
 	}
 	idDomainMap := make(map[string][]geosite.Item)
 	for _, idCode := range idCodes {
 		idDomainMap[idCode] = domainMap[idCode]
+	}
+	if len(idDomainMap["id"]) == 0 {
+		idDomainMap["id"] = idDomainMap["rule-indo"]
 	}
 	idOutputFile, err := os.Create(idOutput)
 	if err != nil {
@@ -470,7 +570,7 @@ func release(source string, destination string, output string, idOutput string, 
 func main() {
 	err := release(
 		"v2fly/domain-list-community",
-		"sagernet/sing-geosite",
+		"bitscoid/BITS-GeoSite",
 		"geosite.db",
 		"geosite-id.db",
 		"rule-set",

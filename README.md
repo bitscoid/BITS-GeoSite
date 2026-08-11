@@ -17,6 +17,12 @@ Releases.
 | `rule-set/geosite-<tag>.srs` | Stable sing-box rule set. |
 | `rule-set-unstable/geosite-<tag>.srs` | Unstable sing-box rule set. |
 
+Additional generated lists include `oisd-full`, `oisd-small`, `oisd-nsfw`,
+`d3ward`, `antiscam`, `rule-ads`, `rule-doh`, `rule-gaming`, `rule-indo`,
+`rule-playstore`, `rule-sosmed`, `rule-streaming`, `rule-umum`,
+`rule-ipcheck`, `rule-speedtest`, `videoconference`, `rule-malicious`, and
+`urltest`. Sources are downloaded from their upstream URLs during generation.
+
 ## Requirements
 
 - Go version declared in [`go.mod`](go.mod).
