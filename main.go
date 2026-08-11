@@ -411,7 +411,7 @@ func generate(release *github.RepositoryRelease, output string, idOutput string,
 		if err != nil {
 			return err
 		}
-		err = srs.Write(outputRuleSet, plainRuleSet, false)
+		err = srs.Write(outputRuleSet, plainRuleSet, C.RuleSetVersion1)
 		outputRuleSet.Close()
 		if err != nil {
 			return err
@@ -420,7 +420,7 @@ func generate(release *github.RepositoryRelease, output string, idOutput string,
 		if err != nil {
 			return err
 		}
-		err = srs.Write(outputRuleSetUnstable, plainRuleSet, true)
+		err = srs.Write(outputRuleSetUnstable, plainRuleSet, C.RuleSetVersion2)
 		outputRuleSetUnstable.Close()
 		if err != nil {
 			return err
