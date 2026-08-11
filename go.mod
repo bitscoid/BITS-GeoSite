@@ -1,10 +1,10 @@
 module github.com/bitscoid/BITS-GeoSite
 
-go 1.23
+go 1.25.0
 
 require (
 	github.com/google/go-github/v45 v45.2.0
-	github.com/sagernet/sing v0.5.0-beta.1
+	github.com/sagernet/sing v0.9.0-beta.1
 	github.com/sagernet/sing-box v1.9.5-0.20240912063220-bed673aa630c
 	github.com/v2fly/v2ray-core/v5 v5.18.0
 	google.golang.org/protobuf v1.36.11
@@ -22,6 +22,6 @@ require (
 	golang.org/x/mod v0.19.0 // indirect
 	golang.org/x/net v0.29.0 // indirect
 	golang.org/x/sync v0.8.0 // indirect
-	golang.org/x/sys v0.25.0 // indirect
+	golang.org/x/sys v0.47.0 // indirect
 	golang.org/x/tools v0.23.0 // indirect
 )
