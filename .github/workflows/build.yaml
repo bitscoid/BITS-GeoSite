@@ -40,6 +40,6 @@ jobs:
           if-no-files-found: error
           path: |
             geosite.db
-            geosite-id.db
+            geosite-min.db
             rule-set/
             rule-set-unstable/

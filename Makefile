@@ -22,5 +22,5 @@ build:
 	go build -o bits-geosite .
 
 clean:
-	rm -f bits-geosite geosite.db geosite-id.db *.sha256sum
+	rm -f bits-geosite geosite.db geosite-min.db *.sha256sum
 	rm -rf rule-set rule-set-unstable release
