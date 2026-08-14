@@ -423,7 +423,7 @@ func mergeTags(data map[string][]geosite.Item) {
 	println("merged id categories: " + strings.Join(idCodeList, ","))
 }
 
-func generate(release *github.RepositoryRelease, output string, idOutput string, minOutput string, ruleSetOutput string, ruleSetUnstableOutput string) error {
+func generate(release *github.RepositoryRelease, output string, minOutput string, ruleSetOutput string, ruleSetUnstableOutput string) error {
 	vData, err := download(release)
 	if err != nil {
 		return err
@@ -446,31 +446,6 @@ func generate(release *github.RepositoryRelease, output string, idOutput string,
 	defer outputFile.Close()
 	writer := bufio.NewWriter(outputFile)
 	err = geosite.Write(writer, domainMap)
-	if err != nil {
-		return err
-	}
-	err = writer.Flush()
-	if err != nil {
-		return err
-	}
-	idCodes := []string{
-		"id",
-		"rule-indo",
-	}
-	idDomainMap := make(map[string][]geosite.Item)
-	for _, idCode := range idCodes {
-		idDomainMap[idCode] = domainMap[idCode]
-	}
-	if len(idDomainMap["id"]) == 0 {
-		idDomainMap["id"] = idDomainMap["rule-indo"]
-	}
-	idOutputFile, err := os.Create(idOutput)
-	if err != nil {
-		return err
-	}
-	defer idOutputFile.Close()
-	writer.Reset(idOutputFile)
-	err = geosite.Write(writer, idDomainMap)
 	if err != nil {
 		return err
 	}
@@ -574,7 +549,7 @@ func setActionOutput(name string, content string) {
 	_, _ = fmt.Fprintf(file, "%s=%s\n", name, content)
 }
 
-func release(source string, destination string, output string, idOutput string, minOutput string, ruleSetOutput string, ruleSetOutputUnstable string) error {
+func release(source string, destination string, output string, minOutput string, ruleSetOutput string, ruleSetOutputUnstable string) error {
 	sourceRelease, err := fetch(source)
 	if err != nil {
 		return err
@@ -589,7 +564,7 @@ func release(source string, destination string, output string, idOutput string, 
 			return nil
 		}
 	}
-	err = generate(sourceRelease, output, idOutput, minOutput, ruleSetOutput, ruleSetOutputUnstable)
+	err = generate(sourceRelease, output, minOutput, ruleSetOutput, ruleSetOutputUnstable)
 	if err != nil {
 		return err
 	}
@@ -602,7 +577,6 @@ func main() {
 		"v2fly/domain-list-community",
 		"bitscoid/BITS-GeoSite",
 		"geosite.db",
-		"geosite-id.db",
 		"geosite-min.db",
 		"rule-set",
 		"rule-set-unstable",
