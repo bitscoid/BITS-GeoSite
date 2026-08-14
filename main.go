@@ -423,7 +423,7 @@ func mergeTags(data map[string][]geosite.Item) {
 	println("merged id categories: " + strings.Join(idCodeList, ","))
 }
 
-func generate(release *github.RepositoryRelease, output string, idOutput string, ruleSetOutput string, ruleSetUnstableOutput string) error {
+func generate(release *github.RepositoryRelease, output string, idOutput string, minOutput string, ruleSetOutput string, ruleSetUnstableOutput string) error {
 	vData, err := download(release)
 	if err != nil {
 		return err
@@ -471,6 +471,36 @@ func generate(release *github.RepositoryRelease, output string, idOutput string,
 	defer idOutputFile.Close()
 	writer.Reset(idOutputFile)
 	err = geosite.Write(writer, idDomainMap)
+	if err != nil {
+		return err
+	}
+	err = writer.Flush()
+	if err != nil {
+		return err
+	}
+	// Minimal database: categories consumed by BITS Box default routes
+	// (block ads via rule-ads, Indonesia bypass via rule-indo / id).
+	// Keeps the bundled APK asset tiny while default rules keep working.
+	minCodes := []string{
+		"id",
+		"rule-ads",
+		"rule-indo",
+	}
+	minDomainMap := make(map[string][]geosite.Item)
+	for _, minCode := range minCodes {
+		domains, ok := domainMap[minCode]
+		if !ok || len(domains) == 0 {
+			return E.New("missing category for minimal database: ", minCode)
+		}
+		minDomainMap[minCode] = domains
+	}
+	minOutputFile, err := os.Create(minOutput)
+	if err != nil {
+		return err
+	}
+	defer minOutputFile.Close()
+	writer.Reset(minOutputFile)
+	err = geosite.Write(writer, minDomainMap)
 	if err != nil {
 		return err
 	}
@@ -544,7 +574,7 @@ func setActionOutput(name string, content string) {
 	_, _ = fmt.Fprintf(file, "%s=%s\n", name, content)
 }
 
-func release(source string, destination string, output string, idOutput string, ruleSetOutput string, ruleSetOutputUnstable string) error {
+func release(source string, destination string, output string, idOutput string, minOutput string, ruleSetOutput string, ruleSetOutputUnstable string) error {
 	sourceRelease, err := fetch(source)
 	if err != nil {
 		return err
@@ -559,7 +589,7 @@ func release(source string, destination string, output string, idOutput string, 
 			return nil
 		}
 	}
-	err = generate(sourceRelease, output, idOutput, ruleSetOutput, ruleSetOutputUnstable)
+	err = generate(sourceRelease, output, idOutput, minOutput, ruleSetOutput, ruleSetOutputUnstable)
 	if err != nil {
 		return err
 	}
@@ -573,6 +603,7 @@ func main() {
 		"bitscoid/BITS-GeoSite",
 		"geosite.db",
 		"geosite-id.db",
+		"geosite-min.db",
 		"rule-set",
 		"rule-set-unstable",
 	)

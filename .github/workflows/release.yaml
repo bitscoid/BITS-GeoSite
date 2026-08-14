@@ -7,6 +7,11 @@ on:
         required: false
         type: string
         default: ""
+      force:
+        description: Force rebuild (ignore already-latest skip)
+        required: false
+        type: boolean
+        default: false
   schedule:
     - cron: "0 0 * * *"
 concurrency:
@@ -36,6 +41,7 @@ jobs:
           go run -v .
         env:
           FIXED_RELEASE: ${{ inputs.tag }}
+          NO_SKIP: ${{ inputs.force }}
       - name: Package rule sets
         if: steps.build.outputs.skip != 'true'
         run: tar czf rule-set.tar.gz rule-set rule-set-unstable
@@ -44,6 +50,7 @@ jobs:
         run: |
           sha256sum geosite.db > geosite.db.sha256sum
           sha256sum geosite-id.db > geosite-id.db.sha256sum
+          sha256sum geosite-min.db > geosite-min.db.sha256sum
       - name: Push rule-set branch
         if: steps.build.outputs.skip != 'true'
         uses: ./.github/actions/push-branch
@@ -63,6 +70,8 @@ jobs:
             geosite.db.sha256sum
             geosite-id.db
             geosite-id.db.sha256sum
+            geosite-min.db
+            geosite-min.db.sha256sum
       - uses: dev-drprasad/delete-older-releases@v0.3.4
         if: steps.build.outputs.skip != 'true'
         with:
@@ -79,4 +88,6 @@ jobs:
             geosite.db.sha256sum
             geosite-id.db
             geosite-id.db.sha256sum
+            geosite-min.db
+            geosite-min.db.sha256sum
             rule-set.tar.gz
