@@ -51,7 +51,6 @@ jobs:
         if: steps.build.outputs.skip != 'true'
         run: |
           cd rule-set && sha256sum *.srs > rule-set.sha256sum && cd ..
-          cd rule-set-unstable && sha256sum *.srs > rule-set-unstable.sha256sum && cd ..
       - name: Push rule-set branch
         if: steps.build.outputs.skip != 'true'
         uses: ./.github/actions/push-branch
@@ -59,7 +58,6 @@ jobs:
           branch: rule-set
           files: |
             rule-set
-            rule-set-unstable
       - name: Push release branch
         if: steps.build.outputs.skip != 'true'
         uses: ./.github/actions/push-branch
@@ -88,5 +86,3 @@ jobs:
             geosite-min.db.sha256sum
             rule-set/*.srs
             rule-set/rule-set.sha256sum
-            rule-set-unstable/*.srs
-            rule-set-unstable/rule-set-unstable.sha256sum
