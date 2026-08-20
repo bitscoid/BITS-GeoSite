@@ -423,7 +423,7 @@ func mergeTags(data map[string][]geosite.Item) {
 	println("merged id categories: " + strings.Join(idCodeList, ","))
 }
 
-func generate(release *github.RepositoryRelease, output string, minOutput string, ruleSetOutput string, ruleSetUnstableOutput string) error {
+func generate(release *github.RepositoryRelease, output string, minOutput string, ruleSetOutput string) error {
 	vData, err := download(release)
 	if err != nil {
 		return err
@@ -484,11 +484,7 @@ func generate(release *github.RepositoryRelease, output string, minOutput string
 		return err
 	}
 	os.RemoveAll(ruleSetOutput)
-	os.RemoveAll(ruleSetUnstableOutput)
 	if err = os.MkdirAll(ruleSetOutput, 0o755); err != nil {
-		return err
-	}
-	if err = os.MkdirAll(ruleSetUnstableOutput, 0o755); err != nil {
 		return err
 	}
 	for code, domains := range domainMap {
@@ -506,27 +502,13 @@ func generate(release *github.RepositoryRelease, output string, minOutput string
 			},
 		}
 		srsPath, _ := filepath.Abs(filepath.Join(ruleSetOutput, "geosite-"+code+".srs"))
-		unstableSRSPath, _ := filepath.Abs(filepath.Join(ruleSetUnstableOutput, "geosite-"+code+".srs"))
 		// os.Stderr.WriteString("write " + srsPath + "\n")
-		var (
-			outputRuleSet         *os.File
-			outputRuleSetUnstable *os.File
-		)
-		outputRuleSet, err = os.Create(srsPath)
+		outputRuleSet, err := os.Create(srsPath)
 		if err != nil {
 			return err
 		}
-		err = srs.Write(outputRuleSet, plainRuleSet, C.RuleSetVersion1)
+		err = srs.Write(outputRuleSet, plainRuleSet, C.RuleSetVersionCurrent)
 		outputRuleSet.Close()
-		if err != nil {
-			return err
-		}
-		outputRuleSetUnstable, err = os.Create(unstableSRSPath)
-		if err != nil {
-			return err
-		}
-		err = srs.Write(outputRuleSetUnstable, plainRuleSet, C.RuleSetVersion2)
-		outputRuleSetUnstable.Close()
 		if err != nil {
 			return err
 		}
@@ -549,7 +531,7 @@ func setActionOutput(name string, content string) {
 	_, _ = fmt.Fprintf(file, "%s=%s\n", name, content)
 }
 
-func release(source string, destination string, output string, minOutput string, ruleSetOutput string, ruleSetOutputUnstable string) error {
+func release(source string, destination string, output string, minOutput string, ruleSetOutput string) error {
 	sourceRelease, err := fetch(source)
 	if err != nil {
 		return err
@@ -564,7 +546,7 @@ func release(source string, destination string, output string, minOutput string,
 			return nil
 		}
 	}
-	err = generate(sourceRelease, output, minOutput, ruleSetOutput, ruleSetOutputUnstable)
+	err = generate(sourceRelease, output, minOutput, ruleSetOutput)
 	if err != nil {
 		return err
 	}
@@ -579,7 +561,6 @@ func main() {
 		"geosite.db",
 		"geosite-min.db",
 		"rule-set",
-		"rule-set-unstable",
 	)
 	if err != nil {
 		log.Fatal(err)

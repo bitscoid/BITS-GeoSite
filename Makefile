@@ -23,4 +23,4 @@ build:
 
 clean:
 	rm -f bits-geosite geosite.db geosite-min.db *.sha256sum
-	rm -rf rule-set rule-set-unstable release
+	rm -rf rule-set release

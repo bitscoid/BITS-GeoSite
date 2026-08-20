@@ -46,7 +46,6 @@ branches.
 | `geosite-min.db.sha256sum` | SHA-256 checksum of the minimal database. |
 | `rule-set/geosite-<tag>.srs` | Stable sing-box binary rule set (one per category). |
 | `rule-set-unstable/geosite-<tag>.srs` | Unstable (category-custom) rule sets. |
-| `rule-set.tar.gz` | Archive of all generated rule sets. |
 
 ## Variants
 
@@ -161,7 +160,7 @@ Generated artifacts are ignored by Git through [`.gitignore`](.gitignore).
 5. Generate the complete database (`geosite.db`).
 6. Generate the minimal database (`geosite-min.db`) from `id`, `rule-ads`, `rule-indo`.
 7. Generate stable and unstable sing-box rule sets.
-8. Publish databases, checksums, rule sets, and `rule-set.tar.gz`.
+8. Publish databases, checksums, and individual `.srs` rule set files.
 
 ## GitHub Actions
 
@@ -179,7 +178,7 @@ Runs **daily** (cron `0 0 * * *`) or manually. Supports two inputs:
 | `tag` | Optional upstream release tag to build instead of latest. |
 | `force` | Set `true` to force regeneration (passes `NO_SKIP=true`). |
 
-It publishes checksums and `rule-set.tar.gz`, keeps the **three latest**
+It publishes checksums and individual `.srs` rule set files, keeps the **three latest**
 releases, and pushes generated files to the `release`, `rule-set`, and
 `rule-set-unstable` branches.
 

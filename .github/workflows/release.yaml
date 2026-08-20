@@ -42,14 +42,16 @@ jobs:
         env:
           FIXED_RELEASE: ${{ inputs.tag }}
           NO_SKIP: ${{ inputs.force }}
-      - name: Package rule sets
-        if: steps.build.outputs.skip != 'true'
-        run: tar czf rule-set.tar.gz rule-set rule-set-unstable
       - name: Generate sha256 hash
         if: steps.build.outputs.skip != 'true'
         run: |
           sha256sum geosite.db > geosite.db.sha256sum
           sha256sum geosite-min.db > geosite-min.db.sha256sum
+      - name: Generate sha256 hash for rule sets
+        if: steps.build.outputs.skip != 'true'
+        run: |
+          cd rule-set && sha256sum *.srs > rule-set.sha256sum && cd ..
+          cd rule-set-unstable && sha256sum *.srs > rule-set-unstable.sha256sum && cd ..
       - name: Push rule-set branch
         if: steps.build.outputs.skip != 'true'
         uses: ./.github/actions/push-branch
@@ -58,7 +60,6 @@ jobs:
           files: |
             rule-set
             rule-set-unstable
-            rule-set.tar.gz
       - name: Push release branch
         if: steps.build.outputs.skip != 'true'
         uses: ./.github/actions/push-branch
@@ -85,4 +86,7 @@ jobs:
             geosite.db.sha256sum
             geosite-min.db
             geosite-min.db.sha256sum
-            rule-set.tar.gz
+            rule-set/*.srs
+            rule-set/rule-set.sha256sum
+            rule-set-unstable/*.srs
+            rule-set-unstable/rule-set-unstable.sha256sum
