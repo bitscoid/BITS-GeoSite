@@ -1,15 +1,25 @@
 version: 2
 updates:
-  - package-ecosystem: gomod
-    directory: /
+  - package-ecosystem: "gomod"
+    directory: "/"
     schedule:
-      interval: weekly
+      interval: "weekly"
     open-pull-requests-limit: 10
+    ignore:
+      # sing-box pre-releases emit rule-set format version 5, which the app's
+      # pinned core (v1.13.x, max srs version 4) cannot read. Skip pre-releases
+      # so dependabot only proposes stable bumps.
+      - dependency-name: "github.com/sagernet/sing-box"
+        versions:
+          - "*-dev.*"
+          - "*-rc.*"
+          - "*-beta.*"
+          - "*-alpha.*"
     labels:
       - dependencies
-  - package-ecosystem: github-actions
-    directory: /
+  - package-ecosystem: "github-actions"
+    directory: "/"
     schedule:
-      interval: weekly
+      interval: "weekly"
     labels:
       - dependencies
