@@ -1,5 +1,5 @@
-github.com/adrg/xdg v0.5.0 h1:dDaZvhMXatArP1NPHhnfaQUqWBLBsmx1h1HXQdMoFCY=
-github.com/adrg/xdg v0.5.0/go.mod h1:dDdY4M4DF9Rjy4kHPeNL+ilVF+p2lK8IdM9/rTSGcI4=
+github.com/adrg/xdg v0.5.3 h1:xRnxJXne7+oWDatRhR1JLnvuccuIeCoBu2rtuLqQB78=
+github.com/adrg/xdg v0.5.3/go.mod h1:nlTsY+NNiCBGCK2tpm09vRqfVzrc2fLmXGpBLF0zlTQ=
 github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc h1:U9qPSI2PIWSS1VwoXQT9A3Wy9MM3WgvqSxFWenqJduM=
 github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
 github.com/golang/protobuf v1.5.4 h1:i7eJL8qZTpSEXOPTxNKhASYpMn+8e5Q6AdndVa1dWek=
@@ -23,8 +23,8 @@ github.com/sagernet/sing-box v1.13.19 h1:oHoleLx60mkTHabEsIV8X+z5LU5CUsYfehQc8P/
 github.com/sagernet/sing-box v1.13.19/go.mod h1:4E8WvF7Vi60N1NtPw1CeG994J/yiJZZkty5dKKwG+V0=
 github.com/stretchr/testify v1.11.1 h1:7s2iGBzp5EwR7/aIZr8ao5+dra3wiQyKjjFuvgVKu7U=
 github.com/stretchr/testify v1.11.1/go.mod h1:wZwfW3scLgRK+23gO65QZefKpKQRnfz6sD981Nm4B6U=
-github.com/v2fly/v2ray-core/v5 v5.18.0 h1:KSw6Q7YPuV1ZAQzdjwxQqCKBIkZnp0DewjjPDEYidAg=
-github.com/v2fly/v2ray-core/v5 v5.18.0/go.mod h1:qC7xF/dQh/Dy+kFxn/4/KN3OXeuliG8IJM4AmG5dTO0=
+github.com/v2fly/v2ray-core/v5 v5.53.0 h1:+QbiwZyHPyNB/n8jYXgBuTE97/RuaeUOrGI+PuF/rXA=
+github.com/v2fly/v2ray-core/v5 v5.53.0/go.mod h1:wnWYv1M3XuD93ortQOQnsKw7wjeOj7QZXuW1XFZe7lo=
 go4.org/netipx v0.0.0-20231129151722-fdeea329fbba h1:0b9z3AuHCjxk0x/opv64kcgZLBseWJUpBw5I82+2U4M=
 go4.org/netipx v0.0.0-20231129151722-fdeea329fbba/go.mod h1:PLyyIXexvUFg3Owu6p/WfdlivPbZJsZdgWZlrGope/Y=
 golang.org/x/crypto v0.54.0 h1:YLIA59K4fiNzHzjnZt2tUJQjQtUWfWbeHBqKtk3eScw=
