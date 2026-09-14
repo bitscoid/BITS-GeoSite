@@ -43,3 +43,4 @@ jobs:
             geosite-min.db
             rule-set/
             rule-set-unstable/
+          retention-days: 1
