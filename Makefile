@@ -10,10 +10,10 @@ fmt_install:
 	go install -v github.com/daixiang0/gci@latest
 
 lint:
-	go run github.com/golangci/golangci-lint/cmd/golangci-lint@v1.62.2 run ./...
+	go run github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.13.2 run ./...
 
 lint_install:
-	go install github.com/golangci/golangci-lint/cmd/golangci-lint@v1.62.2
+	go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.13.2
 
 test:
 	go test -v ./...
